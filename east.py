@@ -8,6 +8,43 @@ def concentration(T):
     """
     return 1 / (1 + jnp.exp(1/T))
 
+def finite_size_concentration_old(N,T):
+    """
+    Equilibrium <c> for N spins at temperature T, EXCLUDING the all-zero state.
+    Energy E = number of up spins (non-interacting).
+    Returns fraction of up spins.
+    """
+    S = 1 << N
+
+    def bit(b, i): return (b >> i) & 1
+
+    numerator = 0.
+    Z = 0.
+    
+    for state in range(S):
+        
+        if state == 0:
+            continue;
+
+        up_spins = state.bit_count()
+        boltz_factor = jnp.exp(-up_spins / T)
+        numerator += boltz_factor * (up_spins / N)
+        Z += boltz_factor
+
+    return numerator / Z
+
+def finite_size_concentration(N,T):
+    """
+    Equilibrium <c> for N spins at temperature T, EXCLUDING the all-zero state.
+    Energy E = number of up spins (non-interacting).
+    Returns fraction of up spins.
+    """
+    infinite_concentration = concentration(T)
+    Z = (1 + jnp.exp(-1/T)) ** N
+    numerator = infinite_concentration * Z
+
+    return numerator / (Z-1)
+
 def generate_configuration(rng, N, T):
     """
     Generates a single East model configuration of N lattice sites at
@@ -21,7 +58,7 @@ def generate_configuration(rng, N, T):
 
 def generate_walkers(rng, num_walkers, N, T):
     """
-    Generates a num_walkers East model configurations of N lattice sites at
+    Generates `num_walkers` East model configurations of N lattice sites at
     temperature T.
 
     Returns: (num_walkers,N) boolean jax array with True at excited sites.
@@ -153,3 +190,4 @@ def site_probabilities_walkers(times, wait_times, walkers):
         return jnp.mean(states_at_t, axis=0)
 
     return jax.vmap(site_probs_at_single_time)(times)
+
