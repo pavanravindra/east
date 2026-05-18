@@ -186,7 +186,7 @@ def site_autocorrelation(traj, c_eq):
     """
     s0  = traj[0]
     raw = jnp.mean(s0[None, :] * traj, axis=1)
-    return (raw - c_eq ** 2) / (c_eq - c_eq ** 2)
+    return (raw - c_eq ** 2) / (raw[0] - c_eq ** 2)
 
 
 def ensemble_autocorrelation(N, T, dt_record, n_records, n_runs, key):
@@ -221,8 +221,8 @@ def ensemble_autocorrelation(N, T, dt_record, n_records, n_runs, key):
 
     tau     = relaxation_time(times, C_mean)
     taus    = jax.vmap(lambda C: relaxation_time(times, C))(Cs)
-    n_valid = jnp.sum(~jnp.isnan(taus)).astype(jnp.float32)
-    tau_err = jnp.where(n_valid > 1, jnp.nanstd(taus) / jnp.sqrt(n_valid), jnp.nan)
+    all_crossed = jnp.all(~jnp.isnan(taus))
+    tau_err = jnp.where(all_crossed, jnp.std(taus) / jnp.sqrt(n_runs), jnp.nan)
 
     return times, C_mean, C_err, tau, tau_err
 
